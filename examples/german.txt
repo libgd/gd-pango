@@ -1,0 +1,1 @@
+Möglichkeiten der VoIP-Software im Zusammenhang mit PHP beschäftigt.

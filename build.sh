@@ -1,0 +1,1 @@
+cc -o a gd_pango.c  -g -O2 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include  -I/usr/include/freetype2 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include  -D_GNU_SOURCE=1 -D_REENTRANT -I /home/pierre/usr/include/pango-1.0 -L/home/pierre/usr/lib -I/home/pierre/cvs/gd/libgd -L/home/pierre/cvs/gd/libgd/.libs -lpango-1.0 -lpangoft2-1.0 -lgd
