@@ -3,5 +3,8 @@ Initial Pango support for GD.
 Still no build script (this is a sandbox playgroudn)
 Modify build.sh to fit your needs.
 
+The documentation (doxygen generated) is available here:
+http://www.libgd.org/pango/
+
 More to come in the next weeks.
 (2006-12-22)
