@@ -6,5 +6,15 @@ Modify build.sh to fit your needs.
 The documentation (doxygen generated) is available here:
 http://www.libgd.org/pango/
 
+Basic rotation support has been added. See examples/rotated.c.
+There is no gdPangoSetAngle as I like to fully support all 
+transformations transparently, without having to call GD specific
+functions.
+
+More advanced usages or improved text position can only be added
+with a special GD renderer class or using the cairo backend.
+
+The GD Renderer will be the next big addition in gd-pango.
+
 More to come in the next weeks.
 (2006-12-22)

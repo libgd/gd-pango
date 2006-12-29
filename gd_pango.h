@@ -36,7 +36,7 @@ extern "C" {
 #define GD_FAILURE -1
 
 #define GD_PANGO_DEFAULT_FONT_FAMILY "Vera"
-#define GD_PANGO_DEFAULT_FONT_SIZE 14
+#define GD_PANGO_DEFAULT_FONT_SIZE 20
 
 /* TODO: Use GD DPI instead */
 #define GD_PANGO_DEFAULT_DPI 96
@@ -80,11 +80,13 @@ typedef struct gdPangoContext { /*GD Pango Context */
 	PangoContext *context;
 	PangoFontMap *font_map;
 	PangoFontDescription *font_desc;
+	PangoMatrix *matrix;
 	PangoLayout *layout;
 	FT_Bitmap *ft2bmp;
 	gdPangoColors default_colors;
 	int min_width;
 	int min_height;
+	double angle;
 } gdPangoContext;
 
 extern int gdPangoInit();
@@ -95,7 +97,7 @@ extern void gdPangoFreeContext(gdPangoContext *context);
 extern gdImagePtr gdPangoCreateSurfaceDraw(
 	gdPangoContext *context);
 
-extern void gdPangoRenderTo(
+extern gdImagePtr gdPangoRenderTo(
 	gdPangoContext *context,
 	gdImagePtr surface,
 	int x, int y);
