@@ -43,7 +43,7 @@ char *readFile(const char *filename)
 	return text;
 }
 
-void main()
+int main(int argc, char *argv[])
 {
 	gdImagePtr im;
 	char *text;
@@ -64,6 +64,7 @@ void main()
 	text = readFile("hebrew.txt");
 	text = readFile("german.txt");
  	text = readFile("english.txt");
+	text = readFile("japanese.txt");
 */
 
 	text = readFile("arabic.txt");
@@ -79,6 +80,7 @@ void main()
 	gdPangoSetDefaultColor(context, &default_colors);
 
 	gdPangoSetMarkup(context, text, -1);
+	free(text);
 
 	w = gdPangoGetLayoutWidth(context);
 	h = gdPangoGetLayoutHeight(context);
