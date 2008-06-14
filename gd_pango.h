@@ -35,13 +35,14 @@ extern "C" {
 #define GD_SUCCESS 1
 #define GD_FAILURE -1
 
-#define GD_PANGO_DEFAULT_FONT_FAMILY "Vera"
-#define GD_PANGO_DEFAULT_FONT_SIZE 20
+#define GD_PANGO_DEFAULT_FONT_FAMILY KacstDigital
+#define GD_PANGO_DEFAULT_FONT_SIZE 10
 
 /* TODO: Use GD DPI instead */
 #define GD_PANGO_DEFAULT_DPI 96
-#define _MAKE_FONT_NAME(family, size) family " " #size
+#define _MAKE_FONT_NAME(family, size) #family " " #size
 #define GD_PANGO_MAKE_FONT_NAME(family, size) _MAKE_FONT_NAME(family, size)
+#define GD_PANGO_MAX_NAME_LENGTH 100
 
 
 #define gdPangoColorToRGBA7888(pc) \
@@ -51,18 +52,8 @@ extern "C" {
 		0)
 
 /**
- * Defines a rectangle with its origin at (x,y) with width w and height h
- */
-typedef struct gdRect {
-	int x; //!< Horizontal origin
-	int y; //!< Vertical origin
-	int w; //!< Width
-	int h; //!< Height
-}gdRect;
-
-/**
  * Defines a colors set. The foreground and background can be
- * defined using a integer valuge returned by gdTrueColor(r,g,b).
+ * defined using a integer value returned by gdTrueColor(r,g,b).
  * For example, you can use when you create a gdPangoContext.
  */
 typedef struct gdPangoColors { /* colors definition */
@@ -142,6 +133,16 @@ extern void gdPangoCopyFTBitmapToSurface(
 	const gdPangoColors *colors,
 	gdRect *rect);
 
+extern char *gdImageStringPangoFT(
+	gdImagePtr im,
+	int *brect,
+	int fg,
+	char *fontlist,
+	double ptsize,
+	double angle,
+	int x,
+	int y,
+	char *string);
 #endif	/* __FT2_BUILD_UNIX_H__ */
 
 #ifdef __PANGO_H__
@@ -150,7 +151,6 @@ extern PangoFontMap* gdPangoGetPangoFontMap(gdPangoContext *context);
 extern PangoFontDescription* gdPangoGetPangoFontDescription(gdPangoContext *context);
 extern PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context);
 extern PangoContext* gdPangoGetPangoContext(gdPangoContext *context);
-
 #endif /* __PANGO_H__ */
 
 #ifdef __cplusplus
