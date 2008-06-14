@@ -46,9 +46,9 @@ extern "C" {
 
 
 #define gdPangoColorToRGBA7888(pc) \
-	gdTrueColorAlpha(fg_color.red >> 8, \
-		fg_color.green >> 8, \
-		fg_color.blue >> 8, \
+	gdTrueColorAlpha(pc.red >> 8, \
+		pc.green >> 8, \
+		pc.blue >> 8, \
 		0)
 
 /**
@@ -57,9 +57,9 @@ extern "C" {
  * For example, you can use when you create a gdPangoContext.
  */
 typedef struct gdPangoColors { /* colors definition */
-	unsigned int fg; 		//!< Foreground color
-	unsigned int bg;		//!< Background color
-	unsigned int alpha;  //!< General alpha component
+	unsigned int fg;    /*!< Foreground color */
+	unsigned int bg;    /*!< Background color */
+	unsigned int alpha; /*!< General alpha component */
 } gdPangoColors;
 
 /**

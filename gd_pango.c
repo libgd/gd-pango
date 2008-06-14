@@ -203,17 +203,13 @@ static FT_Bitmap * gdPangoCreateFTBitmap(int width, int height)
 	FT_Bitmap *bitmap;
 	guchar *buf;
 
-	bitmap = malloc(sizeof(FT_Bitmap));
-	if (!bitmap) {
-		return NULL;
-	}
-
+	bitmap = g_malloc(sizeof(FT_Bitmap));
 	bitmap->width = width;
 	bitmap->rows = height;
 	bitmap->pitch = (width + 3) & ~3;
 	bitmap->num_grays = 256;
 	bitmap->pixel_mode = FT_PIXEL_MODE_GRAY;
-	buf = calloc (bitmap->pitch * bitmap->rows, sizeof(guchar));
+	buf = g_new0(guchar, bitmap->pitch * bitmap->rows);
 	bitmap->buffer = buf;
 
 	return bitmap;
@@ -222,8 +218,8 @@ static FT_Bitmap * gdPangoCreateFTBitmap(int width, int height)
 static void gdPangofreeFTBitmap(FT_Bitmap *bitmap)
 {
 	if(bitmap) {
-		free(bitmap->buffer);
-		free(bitmap);
+		g_free(bitmap->buffer);
+		g_free(bitmap);
 	}
 }
 
@@ -318,7 +314,7 @@ static void gdPangoDrawSpan(
 		start = 0;
 	}
 
-	if (end >= surface->sx) {
+	if (end > surface->sx) {
 		end = surface->sx;
 	}
 	color = colors->fg;
@@ -336,19 +332,17 @@ static void gdPangoRenderLine(
 	gint height,
 	gint baseline)
 {
+	gdPangoColors colors = context->default_colors;
 	GSList *tmp_list = line->runs;
-	PangoColor fg_color, bg_color;
-	PangoRectangle logical_rect;
-	PangoRectangle ink_rect;
 	int x_off = 0;
 
 	while (tmp_list) {
-		gdPangoColors colors = context->default_colors;
-
+		PangoLayoutRun *run = tmp_list->data;
 		PangoUnderline uline = PANGO_UNDERLINE_NONE;
 		gboolean strike, fg_set, bg_set, shape_set;
 		gint rise, risen_y;
-		PangoLayoutRun *run = tmp_list->data;
+		PangoColor fg_color, bg_color;
+		PangoRectangle logical_rect, ink_rect;
 		gdRect d_rect;
 
 		tmp_list = tmp_list->next;
@@ -500,11 +494,12 @@ gdPangoContext* gdPangoCreateContext()
 	g_get_charset(&charset);
 	pango_context_set_language(context->context, pango_language_from_string(charset));
 	//pango_context_set_base_dir(context->context, PANGO_DIRECTION_LTR);
-	pango_context_set_base_gravity(context->context, PANGO_GRAVITY_SOUTH);
+	/*pango_context_set_base_gravity(context->context, PANGO_GRAVITY_SOUTH);*/
 
 	context->font_desc = pango_font_description_from_string(
 		GD_PANGO_MAKE_FONT_NAME(GD_PANGO_DEFAULT_FONT_FAMILY, GD_PANGO_DEFAULT_FONT_SIZE));
 
+	context->matrix = NULL;
 	context->layout = pango_layout_new(context->context);
 
 	/*
@@ -519,6 +514,7 @@ gdPangoContext* gdPangoCreateContext()
 
 	context->min_height = 0;
 	context->min_width = 0;
+	context->angle = 0.0;
 
 	return context;
 }
@@ -566,7 +562,7 @@ gdImagePtr gdPangoCreateSurfaceDraw(gdPangoContext *context)
  */
 gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int y)
 {
-	PangoRectangle logical_rect, ink_rect, brect;
+	PangoRectangle logical_rect, brect;
 	int rotated;
 	double angle = 0;
 	int new_w, new_h;
@@ -589,7 +585,6 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 				pango_context_get_matrix(context->context),
 				&brect);
 		pango_extents_to_pixels (&brect, NULL);
-		PangoRectangle brect2 = brect;
 		new_w = brect.width;
 		new_h = brect.height;
 
@@ -638,10 +633,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 
 		pango_layout_iter_free (iter);
 	} else { /*rotated*/
-		PangoLayoutIter *iter = pango_layout_get_iter(context->layout);
-		int baseline = pango_layout_iter_get_baseline (iter);
-		int layout_x, layout_y;
-		int layout_dir_x, layout_dir_y;
+		int layout_x = 0, layout_y = 0;
 		gdRect rect;
 
 		angle = fmod(angle, 2*G_PI);
