@@ -35,7 +35,7 @@ extern "C" {
 #define GD_SUCCESS 1
 #define GD_FAILURE -1
 
-#define GD_PANGO_DEFAULT_FONT_FAMILY KacstDigital
+#define GD_PANGO_DEFAULT_FONT_FAMILY Vera
 #define GD_PANGO_DEFAULT_FONT_SIZE 10
 
 /* TODO: Use GD DPI instead */
