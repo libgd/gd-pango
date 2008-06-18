@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
 	gdPangoColors default_colors;
 	PangoContext *pangocontext;
 
+	gdPangoInit();
+
 	default_colors.fg = gdTrueColorAlpha(0, 0, 255, 0);
 	default_colors.bg = gdTrueColorAlpha(255, 255, 255, 0);
 	default_colors.alpha = 0;
@@ -92,7 +94,6 @@ int main(int argc, char *argv[])
 	fp = fopen("c.png", "wb");
 	gdImagePng(im, fp);
 	fclose(fp);
-
 	gdImageDestroy(im);
 
 	/* Render to a new image, sized for text */
@@ -101,6 +102,7 @@ int main(int argc, char *argv[])
 	fp = fopen("d.png", "wb");
 	gdImagePng(im, fp);
 	fclose(fp);
+	gdImageDestroy(im);
 
 	gdPangoFreeContext(context);
 	return 0;

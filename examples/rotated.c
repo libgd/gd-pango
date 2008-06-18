@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
 	PangoMatrix rotated_matrix = PANGO_MATRIX_INIT;
 	PangoLayout *layout;
 
+	gdPangoInit();
+
 	default_colors.fg = gdTrueColorAlpha(0, 255, 255, 0);
 	default_colors.bg = gdTrueColorAlpha(255, 255, 255, 0);
 	default_colors.alpha = 0;
