@@ -42,8 +42,6 @@ extern "C" {
 #define GD_PANGO_DEFAULT_DPI 96
 #define _MAKE_FONT_NAME(family, size) #family " " #size
 #define GD_PANGO_MAKE_FONT_NAME(family, size) _MAKE_FONT_NAME(family, size)
-#define GD_PANGO_MAX_NAME_LENGTH 100
-
 
 #define gdPangoColorToRGBA7888(pc) \
 	gdTrueColorAlpha(pc.red >> 8, \
@@ -67,7 +65,7 @@ typedef struct gdPangoColors { /* colors definition */
  * Context object. Different functions are provided to access its
  * values, do not access it directly.
  */
-typedef struct gdPangoContext { /*GD Pango Context */
+typedef struct gdPangoContext { /* GD Pango Context */
 	PangoContext *context;
 	PangoFontMap *font_map;
 	PangoFontDescription *font_desc;

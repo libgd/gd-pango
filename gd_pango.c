@@ -326,7 +326,7 @@ static void gdPangoDrawSpan(
 static void gdPangoRenderLine(
 	gdPangoContext *context,
 	gdImagePtr surface,
-	PangoLayoutLine *line,
+	const PangoLayoutLine *line,
 	gint x,
 	gint y,
 	gint height,
@@ -454,7 +454,7 @@ static void gdPangoRenderLine(
 /* Public API */
 
 /**
- * Initialize the Glib and Pango API.
+ * Initialize the GLib and Pango API.
  * This function must be called before using any other functions
  * in this library besides gdPangoIsInitialized.
  *
@@ -462,15 +462,15 @@ static void gdPangoRenderLine(
 */
 int gdPangoInit() {
 	g_type_init();
-	GD_PANGO_IS_INITIALIZED = -1;
+	GD_PANGO_IS_INITIALIZED = 1;
 	return GD_SUCCESS;
 }
 
 /**
- * Return the intialization status
+ * Return the intialization status.
  * Tells whether gdPango has been already initialized or not.
  *
- * @return non-zero if it was not initialized, positive value if init.
+ * @return positive if it was initialized, otherwise zero.
  */
 int gdPangoIsInitialized()
 {
@@ -493,7 +493,7 @@ gdPangoContext* gdPangoCreateContext()
 
 	g_get_charset(&charset);
 	pango_context_set_language(context->context, pango_language_from_string(charset));
-	//pango_context_set_base_dir(context->context, PANGO_DIRECTION_LTR);
+	/*pango_context_set_base_dir(context->context, PANGO_DIRECTION_LTR);*/
 	/*pango_context_set_base_gravity(context->context, PANGO_GRAVITY_SOUTH);*/
 
 	context->font_desc = pango_font_description_from_string(
@@ -522,12 +522,12 @@ gdPangoContext* gdPangoCreateContext()
 /**
  * Free a context.
  *
- * @param *context	Context to be free
+ * @param *context	Context to be freed
  */
 void gdPangoFreeContext(gdPangoContext *context)
 {
 	gdPangofreeFTBitmap(context->ft2bmp);
-	g_object_unref (context->layout);
+	g_object_unref(context->layout);
 	pango_font_description_free(context->font_desc);
 	g_object_unref(context->context);
 	g_object_unref(context->font_map);
@@ -550,7 +550,7 @@ gdImagePtr gdPangoCreateSurfaceDraw(gdPangoContext *context)
 }
 
 /**
- * Render the text to the given image
+ * Render the text to the given image.
  *
  * Render the text to the given image. The (x,y) coordinate set the top
  * left corner of the text rectangle.
@@ -619,7 +619,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 			PangoLayoutLine *line;
 			int baseline;
 
-			line = pango_layout_iter_get_line (iter);
+			line = pango_layout_iter_get_line_readonly(iter);
 
 			pango_layout_iter_get_line_extents (iter, NULL, &logical_rect);
 			baseline = pango_layout_iter_get_baseline (iter);
@@ -690,7 +690,7 @@ void gdPangoSetMinimumSize(gdPangoContext *context, int width, int height)
 /**
  * Specify default color.
  *
- * Define the default foreground, background and alpha component
+ * Define the default foreground, background and alpha component.
  *
  * @param *context	gdPangoContext context
  * @param *colors		a gdPangoColors ptr, defines fg, bgd or alpha default
@@ -791,7 +791,8 @@ void gdPangoSetBaseDirection(gdPangoContext *context,
 }
 
 /**
- * set font description from a ttf file
+ * Set font description from a ttf file
+ *
  * @param *context Context
  * @param *fontlist path to ttf file
  */
@@ -802,14 +803,15 @@ void gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, char
 	FcBlanks *fcBlanks;
 	FcValue fcFamilyName;
 	int numFonts;
-	char font_desc[GD_PANGO_MAX_NAME_LENGTH];
+	char *font_desc;
 
 	fcBlanks = FcBlanksCreate();
 	fcPattern = FcFreeTypeQuery(fontlist, 0, fcBlanks, &numFonts);
 	FcPatternGet(fcPattern, FC_FAMILY, 0, &fcFamilyName);
 
-	sprintf(font_desc, "%s %d", fcFamilyName.u.s, (int) ptsize);
+	font_desc = g_strdup_printf("%s %d", fcFamilyName.u.s, (int) ptsize);
 	context->font_desc = pango_font_description_from_string(font_desc);
+	g_free(font_desc);
 	gdPangoSetDpi(context, ptsize, ptsize);
 }
 
@@ -824,7 +826,7 @@ PangoFontDescription* gdPangoGetPangoFontDescription(gdPangoContext *context)
 }
 
 /**
- * Returns the internal pango_context pointer
+ * Returns the internal pango_context pointer.
  *
  * This pointer can then be used directly with Pango. There is no need for
  * GD to duplicate the pango API.
@@ -837,7 +839,7 @@ PangoContext* gdPangoGetPangoContext(gdPangoContext *context)
 }
 
 /**
- * Returns the internal pango_layout pointer
+ * Returns the internal pango_layout pointer.
  *
  * This pointer can then be used directly with Pango. There is no need for
  * GD to duplicate the pango API.
@@ -850,7 +852,7 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
 }
 
 /**
- * pango enabled replacement for gdImageStringFT
+ * Pango enabled replacement for gdImageStringFT.
  *
  * @param *im  gdImagePtr
  * @param brect int array of layout bounds
@@ -861,6 +863,7 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
  * @param x top left corner
  * @param y top left corner
  * @param *string the text to draw
+ * @return A null char* on success, or an error string on failure
  */
 char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
