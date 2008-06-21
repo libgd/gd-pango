@@ -35,8 +35,16 @@ char *readFile(const char *filename)
 
 	fseek(file, 0, SEEK_END);
 	file_size = ftell(file);
+	if (file_size == -1) {
+		printf("Cannot tell file <%s>\n", filename);
+		exit(2);
+	}
 	fseek(file, 0, SEEK_SET);
 	text = (char *)malloc(file_size + 1);
+	if (!text) {
+		printf("Cannot allocate\n");
+		exit(3);
+	}
 	fread(text, file_size, 1, file);
 	text[file_size] = '\0';
 

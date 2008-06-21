@@ -78,9 +78,9 @@ typedef struct gdPangoContext { /* GD Pango Context */
 	double angle;
 } gdPangoContext;
 
-extern int gdPangoInit();
-extern int gdPangoIsInitialized();
-extern gdPangoContext* gdPangoCreateContext();
+extern int gdPangoInit(void);
+extern int gdPangoIsInitialized(void);
+extern gdPangoContext* gdPangoCreateContext(void);
 extern void gdPangoFreeContext(gdPangoContext *context);
 
 extern gdImagePtr gdPangoCreateSurfaceDraw(
@@ -122,6 +122,8 @@ extern void gdPangoSetText(
 extern  void gdPangoSetBaseDirection(
 	gdPangoContext *context, PangoDirection pango_dir);
 
+extern char *gdPangoSetPangoFontDescriptionFromFile(
+	gdPangoContext *context, const char *fontlist, double ptsize);
 
 #ifdef __FT2_BUILD_UNIX_H__
 

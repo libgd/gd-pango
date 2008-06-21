@@ -460,7 +460,7 @@ static void gdPangoRenderLine(
  *
  * @return always GD_SUCCESS.
 */
-int gdPangoInit() {
+int gdPangoInit(void) {
 	g_type_init();
 	GD_PANGO_IS_INITIALIZED = 1;
 	return GD_SUCCESS;
@@ -472,7 +472,7 @@ int gdPangoInit() {
  *
  * @return positive if it was initialized, otherwise zero.
  */
-int gdPangoIsInitialized()
+int gdPangoIsInitialized(void)
 {
 	return GD_PANGO_IS_INITIALIZED;
 }
@@ -482,7 +482,7 @@ int gdPangoIsInitialized()
  *
  * @return A pointer to the context as a gdPangoContext*.
  */
-gdPangoContext* gdPangoCreateContext()
+gdPangoContext* gdPangoCreateContext(void)
 {
 	gdPangoContext *context = g_malloc(sizeof(gdPangoContext));
 	G_CONST_RETURN char *charset;
@@ -693,7 +693,7 @@ void gdPangoSetMinimumSize(gdPangoContext *context, int width, int height)
  * Define the default foreground, background and alpha component.
  *
  * @param *context	gdPangoContext context
- * @param *colors		a gdPangoColors ptr, defines fg, bgd or alpha default
+ * @param *colors		a gdPangoColors ptr, defines fg, bg or alpha default
  */
 void gdPangoSetDefaultColor(gdPangoContext *context,
 	const gdPangoColors  *colors)
@@ -791,28 +791,44 @@ void gdPangoSetBaseDirection(gdPangoContext *context,
 }
 
 /**
- * Set font description from a ttf file
+ * Set font description from a ttf file.
  *
  * @param *context Context
  * @param *fontlist path to ttf file
+ * @return A null char* on success, or an error string on failure
  */
-void gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, char
+char *gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 		*fontlist, double ptsize)
 {
 	FcPattern *fcPattern;
 	FcBlanks *fcBlanks;
 	FcValue fcFamilyName;
+	FcResult fcResult;
 	int numFonts;
 	char *font_desc;
+	char *r = (char *)NULL;
 
 	fcBlanks = FcBlanksCreate();
 	fcPattern = FcFreeTypeQuery(fontlist, 0, fcBlanks, &numFonts);
-	FcPatternGet(fcPattern, FC_FAMILY, 0, &fcFamilyName);
+	if (!fcPattern) {
+		r = "font not found";
+		goto fail0;
+	}
+	fcResult = FcPatternGet(fcPattern, FC_FAMILY, 0, &fcFamilyName);
+	if (fcResult != FcResultMatch) {
+		r = "could not get font family";
+		goto fail1;
+	}
 
 	font_desc = g_strdup_printf("%s %d", fcFamilyName.u.s, (int) ptsize);
 	context->font_desc = pango_font_description_from_string(font_desc);
 	g_free(font_desc);
 	gdPangoSetDpi(context, ptsize, ptsize);
+ fail1:
+	FcPatternDestroy(fcPattern);
+ fail0:
+	FcBlanksDestroy(fcBlanks);
+	return r;
 }
 
 PangoFontMap* gdPangoGetPangoFontMap(gdPangoContext *context)
@@ -869,6 +885,7 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
 {
 	int w, h;
+	char *r;
 	gdPangoContext *context;
 	gdPangoColors default_colors;
 	PangoContext *pangocontext;
@@ -883,7 +900,11 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 	angle *= 180 / G_PI;
 
 	context = gdPangoCreateContext();
-	gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize);
+	r = gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize);
+	if (r) {
+		gdPangoFreeContext(context);
+		return r;
+	}
 	gdPangoSetDefaultColor(context, &default_colors);
 	gdPangoSetMarkup(context, string, -1);
 	pangocontext = gdPangoGetPangoContext(context);
