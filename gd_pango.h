@@ -49,6 +49,11 @@ extern "C" {
 		pc.blue >> 8, \
 		0)
 
+enum {
+	GD_PANGO_ERROR_FC_FT,
+	GD_PANGO_ERROR_FC_PAT,
+};
+
 /**
  * Defines a colors set. The foreground and background can be
  * defined using a integer value returned by gdTrueColor(r,g,b).
@@ -122,8 +127,8 @@ extern void gdPangoSetText(
 extern  void gdPangoSetBaseDirection(
 	gdPangoContext *context, PangoDirection pango_dir);
 
-extern char *gdPangoSetPangoFontDescriptionFromFile(
-	gdPangoContext *context, const char *fontlist, double ptsize);
+extern int gdPangoSetPangoFontDescriptionFromFile(
+	gdPangoContext *context, const char *fontlist, double ptsize, int *error);
 
 #ifdef __FT2_BUILD_UNIX_H__
 

@@ -1,5 +1,5 @@
 /* 
- * NOTE: prefer "gdtest.h" to <assert.h>, so
+ * NOTE: prefer "gdtest.h" to <assert.h>, and
  * fix it as soon as possible.
  */
 #include <assert.h>
@@ -158,17 +158,16 @@ TEST(gdPangoSetPangoFontDescriptionFromFile)
 		"/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf",
 		NULL,
 	};
-	int i;
-	char *r;
+	int i, r, error;
 	context = gdPangoCreateContext();
 	for (i=0; paths[i]; i++) {
-		r = gdPangoSetPangoFontDescriptionFromFile(context, paths[i], 12);
-		if (r == NULL) {
+		r = gdPangoSetPangoFontDescriptionFromFile(context, paths[i], 12, NULL);
+		if (r == GD_SUCCESS) {
 			gdTestAssert(context->font_desc);
 		}
 	}
-	r = gdPangoSetPangoFontDescriptionFromFile(context, "you have no file of such a name", 10);
-	gdTestAssert(strcmp(r, "font not found") == 0);
+	r = gdPangoSetPangoFontDescriptionFromFile(context, "you have no file of such a name", 10, &error);
+	gdTestAssert(r == GD_FAILURE && error == GD_PANGO_ERROR_FC_FT);
 	gdPangoFreeContext(context);
 }
 

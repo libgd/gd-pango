@@ -795,10 +795,11 @@ void gdPangoSetBaseDirection(gdPangoContext *context,
  *
  * @param *context Context
  * @param *fontlist path to ttf file
- * @return A null char* on success, or an error string on failure
+ * @param *error output of error code on failure; simply ignored if error = NULL
+ * @return GD_SUCCESS on success, otherwise GD_FAILURE.
  */
-char *gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
-		*fontlist, double ptsize)
+int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
+		*fontlist, double ptsize, int *error)
 {
 	FcPattern *fcPattern;
 	FcBlanks *fcBlanks;
@@ -806,17 +807,19 @@ char *gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	FcResult fcResult;
 	int numFonts;
 	char *font_desc;
-	char *r = (char *)NULL;
+	int r;
 
 	fcBlanks = FcBlanksCreate();
 	fcPattern = FcFreeTypeQuery(fontlist, 0, fcBlanks, &numFonts);
 	if (!fcPattern) {
-		r = "font not found";
+		if (error) *error = GD_PANGO_ERROR_FC_FT;
+		r = GD_FAILURE;
 		goto fail0;
 	}
 	fcResult = FcPatternGet(fcPattern, FC_FAMILY, 0, &fcFamilyName);
 	if (fcResult != FcResultMatch) {
-		r = "could not get font family";
+		if (error) *error = GD_PANGO_ERROR_FC_PAT;
+		r = GD_FAILURE;
 		goto fail1;
 	}
 
@@ -824,6 +827,7 @@ char *gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	context->font_desc = pango_font_description_from_string(font_desc);
 	g_free(font_desc);
 	gdPangoSetDpi(context, ptsize, ptsize);
+	r = GD_SUCCESS;
  fail1:
 	FcPatternDestroy(fcPattern);
  fail0:
@@ -885,7 +889,7 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
 {
 	int w, h;
-	char *r;
+	int r;
 	gdPangoContext *context;
 	gdPangoColors default_colors;
 	PangoContext *pangocontext;
@@ -900,10 +904,10 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 	angle *= 180 / G_PI;
 
 	context = gdPangoCreateContext();
-	r = gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize);
-	if (r) {
+	r = gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize, NULL);
+	if (r != GD_SUCCESS) {
 		gdPangoFreeContext(context);
-		return r;
+		return "font description not found";
 	}
 	gdPangoSetDefaultColor(context, &default_colors);
 	gdPangoSetMarkup(context, string, -1);
