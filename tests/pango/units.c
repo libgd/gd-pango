@@ -12,6 +12,12 @@
 #define TEST(name) static void test_ ## name(void)
 #define DO_TEST(name) test_ ## name()
 
+static char *ttf_paths[] = {
+	"/usr/local/lib/X11/fonts/bitstream-vera/Vera.ttf"
+	"/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf",
+	NULL,
+};
+
 TEST(gdPangoIsInitialized)
 {
 	int r;
@@ -153,15 +159,10 @@ TEST(gdPangoSetBaseDirection)
 TEST(gdPangoSetPangoFontDescriptionFromFile)
 {
 	gdPangoContext *context;
-	char *paths[] = {
-		"/usr/local/lib/X11/fonts/bitstream-vera/Vera.ttf",
-		"/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf",
-		NULL,
-	};
 	int i, r, error;
 	context = gdPangoCreateContext();
-	for (i=0; paths[i]; i++) {
-		r = gdPangoSetPangoFontDescriptionFromFile(context, paths[i], 12, NULL);
+	for (i=0; ttf_paths[i]; i++) {
+		r = gdPangoSetPangoFontDescriptionFromFile(context, ttf_paths[i], 12, NULL);
 		if (r == GD_SUCCESS) {
 			gdTestAssert(context->font_desc);
 		}
@@ -215,6 +216,25 @@ TEST(gdImageStringPangoFT)
 {
 	gdPangoContext *context;
 	context = gdPangoCreateContext();
+	{
+		int brect1[8], brect2[8];
+		int fg = gdTrueColorAlpha(0xFF, 0xFF, 0xFF, gdAlphaOpaque);
+		int k;
+		for (k=0; ttf_paths[k]; k++) {
+			char *r1, *r2;
+			int i;
+			r1 = gdImageStringPangoFT(NULL, brect1, fg, ttf_paths[k], 12., 0., 0, 0, "abc");
+			r2 = gdImageStringPangoFT(NULL, brect2, fg, ttf_paths[k], 12., 0., 0, 0, "<span foreground='green'>a</span>bc");
+			gdTestAssert(r1 == r2);
+			if (r1) continue;
+			for (i=0; i<8; i++) gdTestAssert(brect1[i] == brect2[i]);
+			r1 = gdImageStringPangoFT(NULL, brect1, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "abc");
+			r2 = gdImageStringPangoFT(NULL, brect2, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "<span foreground='green'>a</span>bc");
+			gdTestAssert(r1 == r2);
+			if (r1) continue;
+			for (i=0; i<8; i++) gdTestAssert(brect1[i] == brect2[i]);
+		}
+	}
 	/* TODO */
 	gdPangoFreeContext(context);
 }
