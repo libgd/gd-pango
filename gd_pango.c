@@ -101,7 +101,7 @@
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
 
-//! non-zero if initialized
+/*! non-zero if initialized */
 static int GD_PANGO_IS_INITIALIZED = 0;
 
 static void gdPangoGetItemProperties (
@@ -157,10 +157,10 @@ static void gdPangoGetItemProperties (
 
 		case PANGO_ATTR_FOREGROUND:
 			if (fg_color) {
-			*fg_color = ((PangoAttrColor *)attr)->color;
+				*fg_color = ((PangoAttrColor *)attr)->color;
 			}
 			if (fg_set) {
-			*fg_set = TRUE;
+				*fg_set = TRUE;
 			}
 			break;
 
@@ -246,16 +246,16 @@ void gdPangoCopyFTBitmapToSurface(
 	int color_fg, alpha_blending_back;
 
 	if(x + width > surface->sx) {
-	width = surface->sx - x;
-		if(width <= 0) {
-			return;
-		}
+		width = surface->sx - x;
+	}
+	if(width <= 0) {
+		return;
 	}
 	if(y + height > surface->sy) {
 		height = surface->sy - y;
-		if(height <= 0) {
-			return;
-		}
+	}
+	if(height <= 0) {
+		return;
 	}
 
 	alpha_blending_back = surface->alphaBlendingFlag;
@@ -318,7 +318,7 @@ static void gdPangoDrawSpan(
 		end = surface->sx;
 	}
 	color = colors->fg;
-	for (ix = start; ix <= end; ix++) {
+	for (ix = start; ix < end; ix++) {
 		gdImageSetPixel(surface, ix, y, color);
 	}
 }
@@ -332,11 +332,11 @@ static void gdPangoRenderLine(
 	gint height,
 	gint baseline)
 {
-	gdPangoColors colors = context->default_colors;
 	GSList *tmp_list = line->runs;
 	int x_off = 0;
 
 	while (tmp_list) {
+		gdPangoColors colors = context->default_colors;
 		PangoLayoutRun *run = tmp_list->data;
 		PangoUnderline uline = PANGO_UNDERLINE_NONE;
 		gboolean strike, fg_set, bg_set, shape_set;
@@ -357,7 +357,7 @@ static void gdPangoRenderLine(
 		if(fg_set) {
 			colors.fg = gdPangoColorToRGBA7888(fg_color);
 
-			if(gdTrueColorGetAlpha(colors.bg) == 127) {
+			if(gdTrueColorGetAlpha(colors.bg) == gdAlphaTransparent) {
 				colors.bg = gdPangoColorToRGBA7888(fg_color);
 			}
 		}
@@ -888,22 +888,22 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
 char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
 {
-	int w, h;
 	int r;
+	double angle_d; /* angle in degrees */
 	gdPangoContext *context;
 	gdPangoColors default_colors;
 	PangoContext *pangocontext;
-	PangoMatrix affined_matrix = PANGO_MATRIX_INIT;
-	PangoLayout *layout;
 
 	default_colors.fg = fg;
-	default_colors.bg = gdTrueColorAlpha(0, 0, 0, 127);
-	default_colors.alpha = 127;
-	
+	default_colors.bg = gdTrueColorAlpha(0, 0, 0, gdAlphaTransparent);
+	default_colors.alpha = gdAlphaTransparent;
+
 	/* gdImageStringFT uses angle in radians */
-	angle *= 180 / G_PI;
+	angle_d = (angle / G_PI) * 180;
 
 	context = gdPangoCreateContext();
+	pangocontext = gdPangoGetPangoContext(context);
+	pango_context_set_base_dir(pangocontext, PANGO_DIRECTION_LTR);
 	r = gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize, NULL);
 	if (r != GD_SUCCESS) {
 		gdPangoFreeContext(context);
@@ -911,31 +911,47 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 	}
 	gdPangoSetDefaultColor(context, &default_colors);
 	gdPangoSetMarkup(context, string, -1);
-	pangocontext = gdPangoGetPangoContext(context);
-	layout = gdPangoGetPangoLayout(context);
-	pango_context_set_base_dir(pangocontext, PANGO_DIRECTION_LTR);
 
-	w = gdPangoGetLayoutWidth(context);
-	h = gdPangoGetLayoutHeight(context);
-
-	brect[0] = x;
-	brect[1] = y + h;
-	brect[2] = x + w;
-	brect[3] = y + h;
-	brect[4] = x + w;
-	brect[5] = y;
-	brect[6] = x;
-	brect[7] = y;
-
-	context->angle = angle;
-	if (angle != 0.0) {
+	context->angle = angle_d;
+	if (angle != 0.) {
+		PangoMatrix affined_matrix = PANGO_MATRIX_INIT;
+		PangoLayout *layout;
+		layout = gdPangoGetPangoLayout(context);
 		pango_matrix_rotate(&affined_matrix, context->angle);
 		pango_context_set_matrix(pangocontext, &affined_matrix);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_RIGHT);
 		pango_layout_context_changed(layout);
 		context->matrix = &affined_matrix;
 	}
-	gdPangoRenderTo(context, im, x, y);
+
+	if (brect) {
+		int w = gdPangoGetLayoutWidth(context);
+		int h = gdPangoGetLayoutHeight(context);
+		if (angle == 0.) {
+			brect[0] = x;
+			brect[1] = y + h;
+			brect[2] = x + w;
+			brect[3] = y + h;
+			brect[4] = x + w;
+			brect[5] = y;
+		} else { /* rotated */
+			double sin_a = sin(angle);
+			double cos_a = cos(angle);
+			int h_sin_a = (int)ceil(h * sin_a);
+			int h_cos_a = (int)ceil(h * cos_a);
+			int w_sin_a = (int)ceil(w * sin_a);
+			int w_cos_a = (int)ceil(w * cos_a);
+			brect[0] = x + h_sin_a;
+			brect[1] = y + h_cos_a;
+			brect[2] = x + h_sin_a + w_cos_a;
+			brect[3] = y + h_cos_a - w_sin_a;
+			brect[4] = x + w_cos_a;
+			brect[5] = y - w_sin_a;
+		}
+		brect[6] = x;
+		brect[7] = y;
+	}
+
+	if (im) gdPangoRenderTo(context, im, x, y);
 
 	gdPangoFreeContext(context);
 
