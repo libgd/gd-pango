@@ -875,7 +875,7 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
  * Pango enabled replacement for gdImageStringFT.
  *
  * @param *im  gdImagePtr
- * @param brect int array of layout bounds
+ * @param *bbox gdBBox layout the resulting bounds
  * @param fg foreground color
  * @param *fontlist path to font file
  * @param ptsize font size
@@ -885,7 +885,7 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
  * @param *string the text to draw
  * @return A null char* on success, or an error string on failure
  */
-char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
+char *gdImageStringPangoFT(gdImagePtr im, gdBBox *bbox, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
 {
 	int r;
@@ -923,16 +923,16 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 		context->matrix = &affined_matrix;
 	}
 
-	if (brect) {
+	if (bbox) {
 		int w = gdPangoGetLayoutWidth(context);
 		int h = gdPangoGetLayoutHeight(context);
 		if (angle == 0.) {
-			brect[0] = x;
-			brect[1] = y + h;
-			brect[2] = x + w;
-			brect[3] = y + h;
-			brect[4] = x + w;
-			brect[5] = y;
+			bbox->bottom_left.x  = x;
+			bbox->bottom_left.y  = y + h;
+			bbox->bottom_right.x = x + w;
+			bbox->bottom_right.y = y + h;
+			bbox->top_right.x    = x + w;
+			bbox->top_right.y    = y;
 		} else { /* rotated */
 			double sin_a = sin(angle);
 			double cos_a = cos(angle);
@@ -940,15 +940,15 @@ char *gdImageStringPangoFT(gdImagePtr im, int *brect, int fg, char *fontlist,
 			int h_cos_a = (int)ceil(h * cos_a);
 			int w_sin_a = (int)ceil(w * sin_a);
 			int w_cos_a = (int)ceil(w * cos_a);
-			brect[0] = x + h_sin_a;
-			brect[1] = y + h_cos_a;
-			brect[2] = x + h_sin_a + w_cos_a;
-			brect[3] = y + h_cos_a - w_sin_a;
-			brect[4] = x + w_cos_a;
-			brect[5] = y - w_sin_a;
+			bbox->bottom_left.x  = x + h_sin_a;
+			bbox->bottom_left.y  = y + h_cos_a;
+			bbox->bottom_right.x = x + h_sin_a + w_cos_a;
+			bbox->bottom_right.y = y + h_cos_a - w_sin_a;
+			bbox->top_right.x    = x + w_cos_a;
+			bbox->top_right.y    = y - w_sin_a;
 		}
-		brect[6] = x;
-		brect[7] = y;
+		bbox->top_left.x = x;
+		bbox->top_left.y = y;
 	}
 
 	if (im) gdPangoRenderTo(context, im, x, y);

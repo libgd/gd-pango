@@ -55,6 +55,16 @@ enum {
 };
 
 /**
+ * Defines a bounding box. Note that the box includes all of the corners.
+ */
+typedef struct { /* bounding box */
+	gdPoint bottom_left;
+	gdPoint bottom_right;
+	gdPoint top_right;
+	gdPoint top_left;
+} gdBBox;
+
+/**
  * Defines a colors set. The foreground and background can be
  * defined using a integer value returned by gdTrueColor(r,g,b).
  * For example, you can use when you create a gdPangoContext.
@@ -140,7 +150,7 @@ extern void gdPangoCopyFTBitmapToSurface(
 
 extern char *gdImageStringPangoFT(
 	gdImagePtr im,
-	int *brect,
+	gdBBox *bbox,
 	int fg,
 	char *fontlist,
 	double ptsize,

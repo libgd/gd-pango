@@ -212,27 +212,38 @@ TEST(gdPangoGetPangoLayout)
 	gdPangoFreeContext(context);
 }
 
+static int gdBBoxEqual(gdBBox *bbox1, gdBBox *bbox2)
+{
+	return (bbox1->bottom_left.x == bbox2->bottom_left.x &&
+			bbox1->bottom_left.y == bbox2->bottom_left.y &&
+			bbox1->bottom_right.x == bbox2->bottom_right.x &&
+			bbox1->bottom_right.y == bbox2->bottom_right.y &&
+			bbox1->top_right.x == bbox2->top_right.x &&
+			bbox1->top_right.y == bbox2->top_right.y &&
+			bbox1->top_left.x == bbox2->top_left.x &&
+			bbox1->top_left.y == bbox2->top_left.y);
+}
+
 TEST(gdImageStringPangoFT)
 {
 	gdPangoContext *context;
 	context = gdPangoCreateContext();
 	{
-		int brect1[8], brect2[8];
+		gdBBox bbox1, bbox2;
 		int fg = gdTrueColorAlpha(0xFF, 0xFF, 0xFF, gdAlphaOpaque);
 		int k;
 		for (k=0; ttf_paths[k]; k++) {
 			char *r1, *r2;
-			int i;
-			r1 = gdImageStringPangoFT(NULL, brect1, fg, ttf_paths[k], 12., 0., 0, 0, "abc");
-			r2 = gdImageStringPangoFT(NULL, brect2, fg, ttf_paths[k], 12., 0., 0, 0, "<span foreground='green'>a</span>bc");
+			r1 = gdImageStringPangoFT(NULL, &bbox1, fg, ttf_paths[k], 12., 0., 0, 0, "abc");
+			r2 = gdImageStringPangoFT(NULL, &bbox2, fg, ttf_paths[k], 12., 0., 0, 0, "<span foreground='green'>a</span>bc");
 			gdTestAssert(r1 == r2);
 			if (r1) continue;
-			for (i=0; i<8; i++) gdTestAssert(brect1[i] == brect2[i]);
-			r1 = gdImageStringPangoFT(NULL, brect1, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "abc");
-			r2 = gdImageStringPangoFT(NULL, brect2, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "<span foreground='green'>a</span>bc");
+			gdTestAssert(gdBBoxEqual(&bbox1, &bbox2));
+			r1 = gdImageStringPangoFT(NULL, &bbox1, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "abc");
+			r2 = gdImageStringPangoFT(NULL, &bbox2, fg, ttf_paths[k], 40., -G_PI/6, 0, 0, "<span foreground='green'>a</span>bc");
 			gdTestAssert(r1 == r2);
 			if (r1) continue;
-			for (i=0; i<8; i++) gdTestAssert(brect1[i] == brect2[i]);
+			gdTestAssert(gdBBoxEqual(&bbox1, &bbox2));
 		}
 	}
 	/* TODO */
