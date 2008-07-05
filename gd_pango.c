@@ -181,7 +181,7 @@ static void gdPangoGetItemProperties (
 				*logical_rect = ((PangoAttrShape *)attr)->logical_rect;
 			}
 			if (ink_rect) {
-			*ink_rect = ((PangoAttrShape *)attr)->ink_rect;
+				*ink_rect = ((PangoAttrShape *)attr)->ink_rect;
 			}
 			break;
 
@@ -198,37 +198,47 @@ static void gdPangoGetItemProperties (
 	}
 }
 
-static FT_Bitmap * gdPangoCreateFTBitmap(int width, int height)
+static void gdPangoSetFTBitmap(FT_Bitmap *bitmap, int width, int height)
 {
-	FT_Bitmap *bitmap;
-	guchar *buf;
-
-	bitmap = g_malloc(sizeof(FT_Bitmap));
 	bitmap->width = width;
 	bitmap->rows = height;
 	bitmap->pitch = (width + 3) & ~3;
 	bitmap->num_grays = 256;
 	bitmap->pixel_mode = FT_PIXEL_MODE_GRAY;
-	buf = g_new0(guchar, bitmap->pitch * bitmap->rows);
-	bitmap->buffer = buf;
-
-	return bitmap;
 }
 
-static void gdPangofreeFTBitmap(FT_Bitmap *bitmap)
+static FT_Bitmap * gdPangoCreateFTBitmap(int width, int height)
 {
-	if(bitmap) {
-		g_free(bitmap->buffer);
-		g_free(bitmap);
-	}
+	FT_Bitmap *bitmap;
+	bitmap = g_malloc(sizeof(FT_Bitmap));
+	gdPangoSetFTBitmap(bitmap, width, height);
+	bitmap->buffer = g_new0(guchar, bitmap->pitch * bitmap->rows);
+	return bitmap;
 }
 
 static void gdPangoCleanFTBitmap(FT_Bitmap *bitmap)
 {
 	unsigned char *p = (unsigned char *)bitmap->buffer;
 	int length = bitmap->pitch * bitmap->rows;
-
 	memset(p, 0, length);
+}
+
+static void gdPangoModifyFTBitmap(FT_Bitmap *bitmap, int width, int height)
+{
+	if (bitmap->width != width || bitmap->rows != height) {
+		gdPangoSetFTBitmap(bitmap, width, height);
+		bitmap->buffer = g_realloc(bitmap->buffer, bitmap->pitch * bitmap->rows);
+	}
+	gdPangoCleanFTBitmap(bitmap);
+}
+
+static void gdPangoFreeFTBitmap(FT_Bitmap *bitmap)
+{
+	if(bitmap) {
+		g_free(bitmap->buffer);
+		g_free(bitmap);
+		bitmap = NULL;
+	}
 }
 
 void gdPangoCopyFTBitmapToSurface(
@@ -245,16 +255,22 @@ void gdPangoCopyFTBitmapToSurface(
 	int y = rect->y;
 	int color_fg, alpha_blending_back;
 
-	if(x + width > surface->sx) {
+	if (width > bitmap->width) {
+		width = bitmap->width;
+	}
+	if (x + width > surface->sx) {
 		width = surface->sx - x;
 	}
-	if(width <= 0) {
+	if (width <= 0) {
 		return;
 	}
-	if(y + height > surface->sy) {
+	if (height > bitmap->rows) {
+		height = bitmap->rows;
+	}
+	if (y + height > surface->sy) {
 		height = surface->sy - y;
 	}
-	if(height <= 0) {
+	if (height <= 0) {
 		return;
 	}
 
@@ -263,9 +279,9 @@ void gdPangoCopyFTBitmapToSurface(
 	p_ft = (unsigned char *)bitmap->buffer;
 	color_fg = colors->fg;
 
-	for(i = 0; i < height; i++) {
+	for (i = 0; i < height; i++) {
 		int k;
-		for(k = 0; k < width; k++) {
+		for (k = 0; k < width; k++) {
 			int level;
 			if (p_ft[k]==0) {
 				continue;
@@ -380,9 +396,9 @@ static void gdPangoRenderLine(
 			d_rect.x = (int)(x + PANGO_PIXELS (x_off));
 			d_rect.y = (int)(risen_y - baseline);
 
-			if((!context->ft2bmp) || d_rect.width + d_rect.x > context->ft2bmp->width
-				|| d_rect.height + d_rect.y > context->ft2bmp->rows) {
-				gdPangofreeFTBitmap(context->ft2bmp);
+			if (context->ft2bmp) {
+				gdPangoModifyFTBitmap(context->ft2bmp, d_rect.width + d_rect.x, d_rect.height + d_rect.y);
+			} else {
 				context->ft2bmp = gdPangoCreateFTBitmap(d_rect.width + d_rect.x, d_rect.height + d_rect.y);
 			}
 
@@ -526,7 +542,7 @@ gdPangoContext* gdPangoCreateContext(void)
  */
 void gdPangoFreeContext(gdPangoContext *context)
 {
-	gdPangofreeFTBitmap(context->ft2bmp);
+	gdPangoFreeFTBitmap(context->ft2bmp);
 	g_object_unref(context->layout);
 	pango_font_description_free(context->font_desc);
 	g_object_unref(context->context);
@@ -599,10 +615,10 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 		new_h = logical_rect.height;
 	}
 
-	if((! context->ft2bmp) || context->ft2bmp->width < new_w
-		|| context->ft2bmp->rows < new_h) {
-		gdPangofreeFTBitmap(context->ft2bmp);
-		context->ft2bmp = gdPangoCreateFTBitmap(new_w, new_h); 
+	if (context->ft2bmp) {
+		gdPangoModifyFTBitmap(context->ft2bmp, new_w, new_h);
+	} else {
+		context->ft2bmp = gdPangoCreateFTBitmap(new_w, new_h);
 	}
 
 	if (!surface) {
@@ -612,27 +628,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 		}
 	}
 
-	if (!rotated) {
-		PangoLayoutIter *iter = pango_layout_get_iter(context->layout);
-
-		do {
-			PangoLayoutLine *line;
-			int baseline;
-
-			line = pango_layout_iter_get_line_readonly(iter);
-
-			pango_layout_iter_get_line_extents (iter, NULL, &logical_rect);
-			baseline = pango_layout_iter_get_baseline (iter);
-
-			gdPangoRenderLine(context, surface, line,
-				x + PANGO_PIXELS (logical_rect.x),
-				y + PANGO_PIXELS (logical_rect.y),
-				PANGO_PIXELS (logical_rect.height),
-				PANGO_PIXELS (baseline - logical_rect.y));
-		} while (pango_layout_iter_next_line (iter));
-
-		pango_layout_iter_free (iter);
-	} else { /*rotated*/
+	if (rotated) {
 		int layout_x = 0, layout_y = 0;
 		gdRect rect;
 
@@ -661,6 +657,26 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 
 		pango_ft2_render_layout(context->ft2bmp, context->layout, layout_x, layout_y);
 		gdPangoCopyFTBitmapToSurface(context->ft2bmp, surface, &context->default_colors, &rect);
+	} else {
+		PangoLayoutIter *iter = pango_layout_get_iter(context->layout);
+
+		do {
+			PangoLayoutLine *line;
+			int baseline;
+
+			line = pango_layout_iter_get_line_readonly(iter);
+
+			pango_layout_iter_get_line_extents (iter, NULL, &logical_rect);
+			baseline = pango_layout_iter_get_baseline (iter);
+
+			gdPangoRenderLine(context, surface, line,
+				x + PANGO_PIXELS (logical_rect.x),
+				y + PANGO_PIXELS (logical_rect.y),
+				PANGO_PIXELS (logical_rect.height),
+				PANGO_PIXELS (baseline - logical_rect.y));
+		} while (pango_layout_iter_next_line (iter));
+
+		pango_layout_iter_free (iter);
 	}
 	return surface;
 }
@@ -889,36 +905,32 @@ char *gdImageStringPangoFT(gdImagePtr im, gdBBox *bbox, int fg, char *fontlist,
 		double ptsize, double angle, int x, int y, char *string)
 {
 	int r;
-	double angle_d; /* angle in degrees */
 	gdPangoContext *context;
 	gdPangoColors default_colors;
-	PangoContext *pangocontext;
-
-	default_colors.fg = fg;
-	default_colors.bg = gdTrueColorAlpha(0, 0, 0, gdAlphaTransparent);
-	default_colors.alpha = gdAlphaTransparent;
-
-	/* gdImageStringFT uses angle in radians */
-	angle_d = (angle / G_PI) * 180;
+	PangoContext *pango_context;
 
 	context = gdPangoCreateContext();
-	pangocontext = gdPangoGetPangoContext(context);
-	pango_context_set_base_dir(pangocontext, PANGO_DIRECTION_LTR);
+	pango_context = gdPangoGetPangoContext(context);
+	pango_context_set_base_dir(pango_context, PANGO_DIRECTION_LTR);
 	r = gdPangoSetPangoFontDescriptionFromFile(context, fontlist, ptsize, NULL);
 	if (r != GD_SUCCESS) {
 		gdPangoFreeContext(context);
 		return "font description not found";
 	}
+	default_colors.fg = fg;
+	default_colors.bg = gdTrueColorAlpha(0, 0, 0, gdAlphaTransparent);
+	default_colors.alpha = gdAlphaTransparent;
 	gdPangoSetDefaultColor(context, &default_colors);
 	gdPangoSetMarkup(context, string, -1);
 
-	context->angle = angle_d;
+	/* gdImageStringFT uses angle in radians */
+	context->angle = (angle / G_PI) * 180;
 	if (angle != 0.) {
 		PangoMatrix affined_matrix = PANGO_MATRIX_INIT;
 		PangoLayout *layout;
 		layout = gdPangoGetPangoLayout(context);
 		pango_matrix_rotate(&affined_matrix, context->angle);
-		pango_context_set_matrix(pangocontext, &affined_matrix);
+		pango_context_set_matrix(pango_context, &affined_matrix);
 		pango_layout_context_changed(layout);
 		context->matrix = &affined_matrix;
 	}
