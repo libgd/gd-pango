@@ -124,7 +124,7 @@ static void gdPangoGetItemProperties (
 	}
 
 	if (fg_set) {
-	  *fg_set = FALSE;
+		*fg_set = FALSE;
 	}
 
 	if (bg_set) {
@@ -234,7 +234,7 @@ static void gdPangoModifyFTBitmap(FT_Bitmap *bitmap, int width, int height)
 
 static void gdPangoFreeFTBitmap(FT_Bitmap *bitmap)
 {
-	if(bitmap) {
+	if (bitmap) {
 		g_free(bitmap->buffer);
 		g_free(bitmap);
 		bitmap = NULL;
@@ -303,7 +303,7 @@ static void gdPangoRenderGlyphString(
 	gdRect *rect,
 	int baseline)
 {
-	pango_ft2_render(context->ft2bmp, font, glyphs, rect->x, rect->y + baseline);
+	pango_ft2_render(context->ft2bmp, font, glyphs, 0, baseline);
 	gdPangoCopyFTBitmapToSurface(context->ft2bmp, surface, colors, rect);
 	gdPangoCleanFTBitmap(context->ft2bmp);
 }
@@ -342,38 +342,44 @@ static void gdPangoDrawSpan(
 static void gdPangoRenderLine(
 	gdPangoContext *context,
 	gdImagePtr surface,
-	const PangoLayoutLine *line,
+	PangoLayoutIter *iter,
 	gint x,
-	gint y,
-	gint height,
-	gint baseline)
+    gint y)
 {
-	GSList *tmp_list = line->runs;
-	int x_off = 0;
+	PangoLayoutLine *line;
+	PangoRectangle line_logical_rect;
+	gint baseline;
+	PangoLayoutRun *run;
+	line = pango_layout_iter_get_line_readonly(iter);
+	pango_layout_iter_get_line_extents(iter, NULL, &line_logical_rect);
+	x += PANGO_PIXELS(line_logical_rect.x);
+	y += PANGO_PIXELS(line_logical_rect.y);
+	baseline = pango_layout_iter_get_baseline(iter);
+	baseline = PANGO_PIXELS(baseline - line_logical_rect.y);
 
-	while (tmp_list) {
+	while ( (run = pango_layout_iter_get_run_readonly(iter)) ) {
 		gdPangoColors colors = context->default_colors;
-		PangoLayoutRun *run = tmp_list->data;
 		PangoUnderline uline = PANGO_UNDERLINE_NONE;
 		gboolean strike, fg_set, bg_set, shape_set;
 		gint rise, risen_y;
 		PangoColor fg_color, bg_color;
 		PangoRectangle logical_rect, ink_rect;
+		PangoRectangle run_logical_rect, run_ink_rect;
 		gdRect d_rect;
 
-		tmp_list = tmp_list->next;
+		pango_layout_iter_get_run_extents(iter, &run_ink_rect, &run_logical_rect);
 
 		gdPangoGetItemProperties(run->item,
 			&uline, &strike, &rise,
 			&fg_color, &fg_set, &bg_color, &bg_set,
 			&shape_set, &ink_rect, &logical_rect);
 
-		risen_y = y + baseline - PANGO_PIXELS (rise);
+		risen_y = y + baseline - PANGO_PIXELS(rise);
 
-		if(fg_set) {
+		if (fg_set) {
 			colors.fg = gdPangoColorToRGBA7888(fg_color);
 
-			if(gdTrueColorGetAlpha(colors.bg) == gdAlphaTransparent) {
+			if (gdTrueColorGetAlpha(colors.bg) == gdAlphaTransparent) {
 				colors.bg = gdPangoColorToRGBA7888(fg_color);
 			}
 		}
@@ -382,7 +388,7 @@ static void gdPangoRenderLine(
 			colors.bg = gdPangoColorToRGBA7888(bg_color);
 		}
 
-		if(!shape_set) {
+		if (!shape_set) {
 			if (uline == PANGO_UNDERLINE_NONE) {
 				pango_glyph_string_extents(run->glyphs, run->item->analysis.font,
 							 &ink_rect, &logical_rect);
@@ -391,15 +397,15 @@ static void gdPangoRenderLine(
 							 &ink_rect, &logical_rect);
 			}
 
-			d_rect.width = (int)PANGO_PIXELS(logical_rect.width);
-			d_rect.height = (int)PANGO_PIXELS(logical_rect.height);
-			d_rect.x = (int)(x + PANGO_PIXELS (x_off));
+			d_rect.width = (int)PANGO_PIXELS(run_logical_rect.width);
+			d_rect.height = (int)PANGO_PIXELS(run_logical_rect.height);
+			d_rect.x = (int)(x + PANGO_PIXELS(run_logical_rect.x));
 			d_rect.y = (int)(risen_y - baseline);
 
 			if (context->ft2bmp) {
-				gdPangoModifyFTBitmap(context->ft2bmp, d_rect.width + d_rect.x, d_rect.height + d_rect.y);
+				gdPangoModifyFTBitmap(context->ft2bmp, d_rect.width, d_rect.height);
 			} else {
-				context->ft2bmp = gdPangoCreateFTBitmap(d_rect.width + d_rect.x, d_rect.height + d_rect.y);
+				context->ft2bmp = gdPangoCreateFTBitmap(d_rect.width, d_rect.height);
 			}
 
 			gdPangoRenderGlyphString(context, surface, &colors,
@@ -413,24 +419,24 @@ static void gdPangoRenderLine(
 			case PANGO_UNDERLINE_DOUBLE:
 				gdPangoDrawSpan(surface, &colors,
 				risen_y + 4,
-				x + PANGO_PIXELS (x_off + ink_rect.x),
-				x + PANGO_PIXELS (x_off + ink_rect.x + ink_rect.width));
+				x + PANGO_PIXELS(run_ink_rect.x),
+				x + PANGO_PIXELS(run_ink_rect.x + run_ink_rect.width));
 				/* Just do it twice */
 
 			case PANGO_UNDERLINE_SINGLE:
 				gdPangoDrawSpan(surface, &colors,
 				risen_y + 2,
-				x + PANGO_PIXELS (x_off + ink_rect.x),
-				x + PANGO_PIXELS (x_off + ink_rect.x + ink_rect.width));
+				x + PANGO_PIXELS(run_ink_rect.x),
+				x + PANGO_PIXELS(run_ink_rect.x + run_ink_rect.width));
 				break;
 
 			case PANGO_UNDERLINE_ERROR:
 			{
 				int point_x;
 				int counter = 0;
-				int end_x = x + PANGO_PIXELS (x_off + ink_rect.x + ink_rect.width);
+				int end_x = x + PANGO_PIXELS(run_ink_rect.x + run_ink_rect.width);
 
-				for (point_x = x + PANGO_PIXELS (x_off + ink_rect.x) - 1;
+				for (point_x = x + PANGO_PIXELS(run_ink_rect.x) - 1;
 				 point_x <= end_x;
 				 point_x += 2) {
 					if (counter) {
@@ -447,9 +453,9 @@ static void gdPangoRenderLine(
 
 			case PANGO_UNDERLINE_LOW:
 				gdPangoDrawSpan(surface, &colors,
-				risen_y + PANGO_PIXELS (ink_rect.y + ink_rect.height),
-				x + PANGO_PIXELS (x_off + ink_rect.x),
-				x + PANGO_PIXELS (x_off + ink_rect.x + ink_rect.width));
+				risen_y + PANGO_PIXELS(ink_rect.y + ink_rect.height),
+				x + PANGO_PIXELS(run_ink_rect.x),
+				x + PANGO_PIXELS(run_ink_rect.x + run_ink_rect.width));
 				break;
 
 			default:
@@ -458,11 +464,12 @@ static void gdPangoRenderLine(
 
 		if (strike) {
 			gdPangoDrawSpan(surface, &colors,
-			risen_y + PANGO_PIXELS (logical_rect.y + logical_rect.height / 2),
-			x + PANGO_PIXELS (x_off + logical_rect.x),
-			x + PANGO_PIXELS (x_off + logical_rect.x + logical_rect.width));
+			risen_y + PANGO_PIXELS(logical_rect.y + logical_rect.height / 2),
+			x + PANGO_PIXELS(run_logical_rect.x),
+			x + PANGO_PIXELS(run_logical_rect.x + run_logical_rect.width));
 		}
-		x_off += logical_rect.width;
+
+		pango_layout_iter_next_run(iter);
 	}
 }
 
@@ -594,7 +601,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 	 * NB: other transformations are not supported yet. GD2 Renderer class
 	 * is required.
 	 */
-	if  (rotated) {
+	if (rotated) {
 		angle = context->angle * G_PI/180;
 
 		pango_matrix_transform_rectangle (
@@ -661,20 +668,8 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 		PangoLayoutIter *iter = pango_layout_get_iter(context->layout);
 
 		do {
-			PangoLayoutLine *line;
-			int baseline;
-
-			line = pango_layout_iter_get_line_readonly(iter);
-
-			pango_layout_iter_get_line_extents (iter, NULL, &logical_rect);
-			baseline = pango_layout_iter_get_baseline (iter);
-
-			gdPangoRenderLine(context, surface, line,
-				x + PANGO_PIXELS (logical_rect.x),
-				y + PANGO_PIXELS (logical_rect.y),
-				PANGO_PIXELS (logical_rect.height),
-				PANGO_PIXELS (baseline - logical_rect.y));
-		} while (pango_layout_iter_next_line (iter));
+			gdPangoRenderLine(context, surface, iter, x, y);
+		} while (pango_layout_iter_next_line(iter));
 
 		pango_layout_iter_free (iter);
 	}
@@ -691,7 +686,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 void gdPangoSetMinimumSize(gdPangoContext *context, int width, int height)
 {
 	int pango_width;
-	if(width > 0) {
+	if (width > 0) {
 		pango_width = width * PANGO_SCALE;
 	} else {
 		pango_width = -1;
