@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
    im = gdImageCreateTrueColor(640, 640);
 	gdPangoRenderTo(context, im, margin_x, margin_y);
 
-	fp = fopen("c.png", "wb");
+	fp = fopen("a.png", "wb");
 	gdImagePng(im, fp);
 	fclose(fp);
 	gdImageDestroy(im);
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	/* Render to a new image, sized for text */
 	im = gdPangoCreateSurfaceDraw(context);
 
-	fp = fopen("d.png", "wb");
+	fp = fopen("b.png", "wb");
 	gdImagePng(im, fp);
 	fclose(fp);
 	gdImageDestroy(im);
