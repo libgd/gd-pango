@@ -95,11 +95,11 @@
 
 #include <pango/pango.h>
 #include <pango/pangoft2.h>
-#include <gd.h>
-#include <gd_pango.h>
 #include <math.h>
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
+#include <gd.h>
+#include "gd_pango.h"
 
 /*! non-zero if initialized */
 static int GD_PANGO_IS_INITIALIZED = 0;
