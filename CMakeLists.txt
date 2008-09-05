@@ -24,10 +24,15 @@ add_library(gd_pango SHARED gd_pango)
 target_link_libraries(gd_pango ${PANGOFT2_LIBRARIES} ${GD_LIBRARY})
 
 add_subdirectory(examples)
-add_subdirectory(tests)
 if(BUILD_TESTING)
   enable_testing()
+  add_subdirectory(tests)
 endif(BUILD_TESTING)
+
+install(TARGETS gd_pango
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+install(FILES "${GD_PANGO_SOURCE_DIR}/gd_pango.h" DESTINATION include)
 
 set(CPACK_PACKAGE_NAME gd-pango)
 set(CPACK_PACKAGE_VERSION_MAJOR 0)
