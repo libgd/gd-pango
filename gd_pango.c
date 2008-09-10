@@ -344,7 +344,7 @@ static void gdPangoRenderLine(
 	gdImagePtr surface,
 	PangoLayoutIter *iter,
 	gint x,
-    gint y)
+	gint y)
 {
 	PangoLayoutLine *line;
 	PangoRectangle line_logical_rect;
@@ -593,7 +593,7 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 	pango_layout_get_extents(context->layout, NULL, &logical_rect);
 
 	brect = logical_rect; /* copy in pango units */
-	pango_extents_to_pixels (&logical_rect, NULL); 
+	pango_extents_to_pixels (&logical_rect, NULL);
 
 	rotated = (pango_context_get_matrix(context->context) != NULL);
 
@@ -644,13 +644,13 @@ gdImagePtr gdPangoRenderTo(gdPangoContext *context, gdImage* surface, int x, int
 		if (angle > 0. && angle < G_PI/2) {
 			layout_x =  brect.y * sin(angle);
 			layout_y = -brect.y * cos(angle);
-		} else if (angle >= -G_PI/2 && angle <= 0.) { 
+		} else if (angle >= -G_PI/2 && angle <= 0.) {
 			layout_x =  -brect.x * cos(angle);
 			layout_y =  -brect.x * sin(angle);
-		} else if (angle >= G_PI/2 && angle <= G_PI) { 
+		} else if (angle >= G_PI/2 && angle <= G_PI) {
 			layout_x = -logical_rect.width + logical_rect.height * cos(angle) * sin(angle);
 			layout_y = -logical_rect.height * cos(angle) * cos(angle);
-		} else if (angle >= -G_PI && angle < -G_PI/2) { 
+		} else if (angle >= -G_PI && angle < -G_PI/2) {
 			layout_x = -logical_rect.width * cos(angle) * cos(angle);
 			layout_y = -logical_rect.height - (logical_rect.width * cos(angle) * sin(angle));
 		} else {
@@ -779,8 +779,8 @@ void gdPangoSetText(gdPangoContext *context, const char *text,
  * Set DPI to context.
  *
  * @param *context	Context
- * @param dpi_x 		Horizontal dpi
- * @param dpi_y		Vertical dpi
+ * @param dpi_x 	Horizontal dpi
+ * @param dpi_y 	Vertical dpi
  */
 void gdPangoSetDpi(gdPangoContext *context,
 	double dpi_x, double dpi_y)
@@ -817,7 +817,7 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	FcValue fcFamilyName;
 	FcResult fcResult;
 	int numFonts;
-	char *font_desc;
+	char *font_desc, buf[G_ASCII_DTOSTR_BUF_SIZE];
 	int r;
 
 	fcBlanks = FcBlanksCreate();
@@ -834,7 +834,8 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 		goto fail1;
 	}
 
-	font_desc = g_strdup_printf("%s %d", fcFamilyName.u.s, (int) ptsize);
+	g_ascii_dtostr(buf, sizeof(buf), ptsize);
+	font_desc = g_strconcat(fcFamilyName.u.s, " ", buf, NULL);
 	context->font_desc = pango_font_description_from_string(font_desc);
 	g_free(font_desc);
 	gdPangoSetDpi(context, ptsize, ptsize);
