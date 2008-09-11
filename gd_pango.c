@@ -806,6 +806,7 @@ void gdPangoSetBaseDirection(gdPangoContext *context,
  *
  * @param *context Context
  * @param *fontlist path to ttf file
+ * @param ptsize font size in points
  * @param *error output of error code on failure; simply ignored if error = NULL
  * @return GD_SUCCESS on success, otherwise GD_FAILURE.
  */
@@ -838,7 +839,6 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	font_desc = g_strconcat(fcFamilyName.u.s, " ", buf, NULL);
 	context->font_desc = pango_font_description_from_string(font_desc);
 	g_free(font_desc);
-	gdPangoSetDpi(context, ptsize, ptsize);
 	r = GD_SUCCESS;
  fail1:
 	FcPatternDestroy(fcPattern);
@@ -890,7 +890,7 @@ PangoLayout* gdPangoGetPangoLayout(gdPangoContext *context)
  * @param *bbox gdBBox layout the resulting bounds
  * @param fg foreground color
  * @param *fontlist path to font file
- * @param ptsize font size
+ * @param ptsize font size in points
  * @param angle angle in radians
  * @param x top left corner
  * @param y top left corner
