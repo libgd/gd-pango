@@ -52,6 +52,7 @@ extern "C" {
 enum {
 	GD_PANGO_ERROR_FC_FT,
 	GD_PANGO_ERROR_FC_PAT,
+	GD_PANGO_ERROR_FORMAT,
 };
 
 /**

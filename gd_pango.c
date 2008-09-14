@@ -818,28 +818,36 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	FcValue fcFamilyName;
 	FcResult fcResult;
 	int numFonts;
-	char *font_desc, buf[G_ASCII_DTOSTR_BUF_SIZE];
-	int r;
+	char *font_desc;
+	int n, r = GD_FAILURE;
 
 	fcBlanks = FcBlanksCreate();
 	fcPattern = FcFreeTypeQuery(fontlist, 0, fcBlanks, &numFonts);
 	if (!fcPattern) {
 		if (error) *error = GD_PANGO_ERROR_FC_FT;
-		r = GD_FAILURE;
 		goto fail0;
 	}
 	fcResult = FcPatternGet(fcPattern, FC_FAMILY, 0, &fcFamilyName);
 	if (fcResult != FcResultMatch) {
 		if (error) *error = GD_PANGO_ERROR_FC_PAT;
-		r = GD_FAILURE;
 		goto fail1;
 	}
 
-	g_ascii_dtostr(buf, sizeof(buf), ptsize);
-	font_desc = g_strconcat(fcFamilyName.u.s, " ", buf, NULL);
+	n = snprintf(NULL, 0, "%s %f", fcFamilyName.u.s, ptsize);
+	if (n <= 0) {
+		if (error) *error = GD_PANGO_ERROR_FORMAT;
+		goto fail1;
+	}
+	font_desc = g_malloc(n + 1);
+	n = snprintf(font_desc, n + 1, "%s %f", fcFamilyName.u.s, ptsize);
+	if (n <= 0) {
+		if (error) *error = GD_PANGO_ERROR_FORMAT;
+		goto fail2;
+	}
 	context->font_desc = pango_font_description_from_string(font_desc);
-	g_free(font_desc);
 	r = GD_SUCCESS;
+ fail2:
+	g_free(font_desc);
  fail1:
 	FcPatternDestroy(fcPattern);
  fail0:
