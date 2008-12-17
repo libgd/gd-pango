@@ -140,12 +140,12 @@ static void gdPangoGetItemProperties (
 	}
 
 	while (tmp_list) {
-		PangoAttribute *attr = tmp_list->data;
+		PangoAttribute *attr = (PangoAttribute *)tmp_list->data;
 
 		switch (attr->klass->type) {
 		case PANGO_ATTR_UNDERLINE:
 			if (uline) {
-				*uline = ((PangoAttrInt *)attr)->value;
+				*uline = (PangoUnderline)((PangoAttrInt *)attr)->value;
 			}
 			break;
 
@@ -210,7 +210,7 @@ static void gdPangoSetFTBitmap(FT_Bitmap *bitmap, int width, int height)
 static FT_Bitmap * gdPangoCreateFTBitmap(int width, int height)
 {
 	FT_Bitmap *bitmap;
-	bitmap = g_malloc(sizeof(FT_Bitmap));
+	bitmap = (FT_Bitmap *)g_malloc(sizeof(FT_Bitmap));
 	gdPangoSetFTBitmap(bitmap, width, height);
 	bitmap->buffer = g_new0(guchar, bitmap->pitch * bitmap->rows);
 	return bitmap;
@@ -227,7 +227,7 @@ static void gdPangoModifyFTBitmap(FT_Bitmap *bitmap, int width, int height)
 {
 	if (bitmap->width != width || bitmap->rows != height) {
 		gdPangoSetFTBitmap(bitmap, width, height);
-		bitmap->buffer = g_realloc(bitmap->buffer, bitmap->pitch * bitmap->rows);
+		bitmap->buffer = (unsigned char *)g_realloc( bitmap->buffer, bitmap->pitch * bitmap->rows);
 	}
 	gdPangoCleanFTBitmap(bitmap);
 }
@@ -507,7 +507,7 @@ int gdPangoIsInitialized(void)
  */
 gdPangoContext* gdPangoCreateContext(void)
 {
-	gdPangoContext *context = g_malloc(sizeof(gdPangoContext));
+	gdPangoContext *context = (gdPangoContext *)g_malloc(sizeof(gdPangoContext));
 	G_CONST_RETURN char *charset;
 
 	context->font_map = pango_ft2_font_map_new();
@@ -822,7 +822,7 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 	int n, r = GD_FAILURE;
 
 	fcBlanks = FcBlanksCreate();
-	fcPattern = FcFreeTypeQuery(fontlist, 0, fcBlanks, &numFonts);
+	fcPattern = FcFreeTypeQuery((FcChar8 *)fontlist, 0, fcBlanks, &numFonts);
 	if (!fcPattern) {
 		if (error) *error = GD_PANGO_ERROR_FC_FT;
 		goto fail0;
@@ -838,7 +838,7 @@ int gdPangoSetPangoFontDescriptionFromFile(gdPangoContext *context, const char
 		if (error) *error = GD_PANGO_ERROR_FORMAT;
 		goto fail1;
 	}
-	font_desc = g_malloc(n + 1);
+	font_desc = (char *)g_malloc(n + 1);
 	n = snprintf(font_desc, n + 1, "%s %f", fcFamilyName.u.s, ptsize);
 	if (n <= 0) {
 		if (error) *error = GD_PANGO_ERROR_FORMAT;
